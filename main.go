@@ -14,6 +14,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// AcceptAllValidator accepts any record without validation
+type AcceptAllValidator struct{}
+
+// Validate always returns nil (no error), accepting all records
+func (a AcceptAllValidator) Validate(_ string, _ []byte) error {
+	return nil
+}
+
+// Select always returns the first record (default)
+func (a AcceptAllValidator) Select(_ string, _ [][]byte) (int, error) {
+	return 0, nil
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -27,7 +40,7 @@ func main() {
 
 	// Initialize ChainSafe DHT with custom validator for "record" namespace
 	validator := record.NamespacedValidator{
-		"record": record.AcceptAll{},
+		"record": AcceptAllValidator{},
 	}
 	kademliaDHT, err := dht.New(ctx, h, dht.Validator(validator))
 	if err != nil {
