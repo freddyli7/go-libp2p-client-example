@@ -3,29 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
-	record "github.com/libp2p/go-libp2p-record"
-	"github.com/multiformats/go-multiaddr"
+	"github.com/ipfs/boxo/ipns"
 	"time"
 
 	libp2p "github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	record "github.com/libp2p/go-libp2p-record"
 	recordpb "github.com/libp2p/go-libp2p-record/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 )
-
-// AcceptAllValidator accepts any record without validation
-type AcceptAllValidator struct{}
-
-// Validate always returns nil (no error), accepting all records
-func (a AcceptAllValidator) Validate(_ string, _ []byte) error {
-	return nil
-}
-
-// Select always returns the first record (default)
-func (a AcceptAllValidator) Select(_ string, _ [][]byte) (int, error) {
-	return 0, nil
-}
 
 func main() {
 	ctx := context.Background()
@@ -40,7 +28,8 @@ func main() {
 
 	// Initialize ChainSafe DHT with custom validator for "record" namespace
 	validator := record.NamespacedValidator{
-		"record": AcceptAllValidator{},
+		"ipns": ipns.Validator{},
+		"pk":   record.PublicKeyValidator{},
 	}
 	kademliaDHT, err := dht.New(ctx, h, dht.Validator(validator))
 	if err != nil {
@@ -48,7 +37,7 @@ func main() {
 	}
 
 	// Connect to Rust peer (update PORT and ID accordingly)
-	rustAddrStr := "/ip4/127.0.0.1/tcp/56431/p2p/12D3KooWMuZpR6LwGvQu3rG1Cf9gtkJ1pb6B4mMrMe8frZVQChuu"
+	rustAddrStr := "/ip4/127.0.0.1/tcp/58641/p2p/12D3KooWFNcuRWminVeCf3NFuj45D7TyDp9zK48tJxAEZuggMEvL"
 	rustAddr, err := multiaddr.NewMultiaddr(rustAddrStr)
 	if err != nil {
 		panic(err)
@@ -72,19 +61,14 @@ func main() {
 		Value:        []byte("hello from Go over protobuf"),
 		TimeReceived: time.Now().Format(time.RFC3339),
 	}
-	data, err := proto.Marshal(rec)
-	if err != nil {
-		panic(err)
-	}
+	key := "/pk/my-key-go"
 
-	key := "/record/my-key-go"
-
-	// PUT the serialized protobuf record
+	//store record locally
 	fmt.Println("Putting protobuf record into DHT under key:", key)
-	if err := kademliaDHT.PutValue(ctx, key, data); err != nil {
+	if err := kademliaDHT.StoreRecord(ctx, key, rec); err != nil {
 		panic("PutValue error: " + err.Error())
 	}
-	fmt.Println("Record put successfully!")
+	fmt.Println("Record stored locally successfully!")
 
 	// GET it back
 	fmt.Println("Getting record from DHT...")
