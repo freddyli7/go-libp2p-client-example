@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 func StoreGoRecordLocally(ctx context.Context, kademliaDHT *dht.IpfsDHT) string {
@@ -51,4 +52,31 @@ func PutValueGoRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT, peerID stri
 
 	fmt.Println("PutValue GoRecord successfully!")
 	return key
+}
+
+func PutRecordAtPeerGoRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT, peerInfo *peer.AddrInfo) string {
+	key := "/record/" + peerInfo.ID
+	// Prepare go record
+	rec := &GoRecord{
+		Key:       []byte(key),
+		Value:     []byte("hello from Go over protobuf"),
+		Publisher: nil,
+		Expires:   nil,
+	}
+	protobufRecord, err := rec.parseIntoProtobufRecord()
+	if err != nil {
+		panic("parseIntoProtobufRecord error: " + err.Error())
+	}
+
+	// Store it into the DHT using PutRecordAt
+	peers := []peer.AddrInfo{
+		*peerInfo,
+	}
+	if err := kademliaDHT.PutRecordAtPeer(ctx, protobufRecord, peers); err != nil {
+		panic("PutRecordAt error: " + err.Error())
+	}
+
+	fmt.Println("PutRecordAt GoRecord successfully!")
+
+	return ""
 }

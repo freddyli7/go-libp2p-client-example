@@ -50,13 +50,19 @@ func main() {
 		// customized namespace
 		"record": AcceptAllValidator{},
 	}
+
+	// Here we don't initialize the dual.DHT, instead we initialize a IpfsDHT
+	// because dual.DHT is just a tuple with two IpfsDHT named LAN and WAN.
+	// Our goal here is to test the newly added method on dual.DHT, specifically [dual.StoreRecord] and [dual.PutRecordTo]
+	// the under methods they both are calling are [IpfsDHT.StoreRecord] and [IpfsDHT.PutRecordAtPeer]
+	// so we only need to test [IpfsDHT.StoreRecord] and [IpfsDHT.PutRecordAtPeer] against the rust libp2p DHT host
 	kademliaDHT, err := dht.New(ctx, h, dht.ProtocolPrefix("/record"), dht.Validator(validator))
 	if err != nil {
 		panic(err)
 	}
 
 	// Connect to Rust peer (update PORT and ID accordingly)
-	rustAddrStr := "/ip4/127.0.0.1/tcp/63264/p2p/12D3KooWQdQaen972Z2Ybjgt9fTicGX8zPDsbe3T1WUK8FMV4Z32"
+	rustAddrStr := "/ip4/127.0.0.1/tcp/64286/p2p/12D3KooWGbjtRkkcxkoDD5rN5sk2icMtfcRKbPMjVwdFQMnuYNzP"
 	rustAddr, err := multiaddr.NewMultiaddr(rustAddrStr)
 	if err != nil {
 		panic(err)
@@ -86,13 +92,17 @@ func main() {
 	time.Sleep(3 * time.Second)
 	fmt.Println("Wait for routing table to populate...")
 
-	// store record locally: all works
+	// store record locally(IpfsDHT.StoreRecord): all works
 	//key := StoreGoRecordLocally(ctx, kademliaDHT)
 	//key := StoreProtobufRecordLocally(ctx, kademliaDHT)
 
-	// store record by put_value method: all works
+	// store record by put_value method(IpfsDHT.PutValue): all works
 	//key := PutValueGoRecord(ctx, kademliaDHT, peerInfo.ID.String())
-	key := PutValueProtobufRecord(ctx, kademliaDHT, peerInfo.ID.String())
+	//key := PutValueProtobufRecord(ctx, kademliaDHT, peerInfo.ID.String())
+
+	// store record by PutRecordAtPeer method(IpfsDHT.PutRecordAtPeer):: all works
+	//key := PutRecordAtPeerGoRecord(ctx, kademliaDHT, peerInfo)
+	key := PutRecordAtPeerProtobufRecord(ctx, kademliaDHT, peerInfo)
 
 	// GET it back
 	fmt.Println("Getting record from DHT...")
