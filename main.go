@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-record/pb"
 	"github.com/multiformats/go-multiaddr"
+	"google.golang.org/protobuf/encoding/protowire"
 	"time"
 
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -107,21 +109,88 @@ func main() {
 
 	// GET it back
 	fmt.Println("Getting record from DHT...")
-	val, err := kademliaDHT.GetValue(ctx, key)
-	if err != nil {
-		panic("GetValue error: " + err.Error())
-	}
-	fmt.Println("Raw data retrieved:", val)
 
-	//// decode the raw bytes of the value field
-	//fmt.Println("Raw record value:", string(val))
-
-	// Unmarshal Protobuf record
-	//got := &recordpb.Record{}
-	//if err := proto.Unmarshal(val, got); err != nil {
-	//	panic("Failed to unmarshal record: " + err.Error())
+	// Get value of record
+	//val, err := kademliaDHT.GetValue(ctx, key)
+	//if err != nil {
+	//	panic("GetValue error: " + err.Error())
 	//}
-	//
-	//fmt.Printf("Decoded Record:\n  key=%s\n  value=%s\n  timeReceived=%s\n",
-	//	string(got.Key), string(got.Value), got.TimeReceived)
+
+	// Get the entire record
+	rec, err := kademliaDHT.GetRecord(ctx, key)
+	if err != nil {
+		panic("GetRecord error: " + err.Error())
+	}
+	fmt.Println("Raw data retrieved:", rec)
+
+	// parse 666 to publisher and 777 to ttl
+	pub, ttl, err := parsePublisherAndExpiresFromRustRecord(rec)
+	if err != nil {
+		panic(err)
+	}
+
+	exp := time.Now()
+	if ttl != nil {
+		exp = exp.Add(*ttl * time.Second)
+	}
+
+	fmt.Printf("Go record: %v\n", string(rec.Key))
+	fmt.Printf("Go record: %v\n", string(rec.Value))
+	fmt.Printf("Go record: %v\n", pub)
+	fmt.Printf("Go record: %v\n", exp)
+
+}
+
+// parse 666 to publisher and 777 to ttl
+func parsePublisherAndExpiresFromRustRecord(rec *pb.Record) (*peer.ID, *time.Duration, error) {
+	msgReflect := rec.ProtoReflect()
+	unknown := msgReflect.GetUnknown()
+
+	var pub peer.ID
+	var t uint64
+	var err error
+
+	for len(unknown) > 0 {
+		num, typ, n := protowire.ConsumeTag(unknown)
+		if n < 0 {
+			return nil, nil, errors.New("failed to consume tag")
+		}
+		unknown = unknown[n:]
+
+		switch num {
+		case 666:
+			if typ == protowire.BytesType {
+				val, n := protowire.ConsumeBytes(unknown)
+				if n < 0 {
+					return nil, nil, errors.New("bad bytes for tag 666")
+				}
+
+				pub, err = peer.IDFromBytes(val)
+				if err != nil {
+					return nil, nil, errors.New("invalid peer ID bytes")
+				}
+
+				fmt.Printf("Publisher Peer ID: %s\n", pub)
+
+				unknown = unknown[n:]
+			}
+		case 777:
+			if typ == protowire.VarintType {
+				t, n = protowire.ConsumeVarint(unknown)
+				if n < 0 {
+					return nil, nil, errors.New("bad variant for tag 777")
+				}
+
+				fmt.Printf("Tag 777 (ttl): %d\n", t)
+
+				unknown = unknown[n:]
+			}
+		default:
+			fmt.Println("skip other unknown tag:", num)
+		}
+	}
+
+	ttl := time.Duration(t)
+
+	return &pub, &ttl, nil
 }
