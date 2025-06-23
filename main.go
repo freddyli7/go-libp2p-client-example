@@ -181,7 +181,7 @@ func parsePublisherAndExpiresFromRustRecord(rec *pb.Record) (*peer.ID, *time.Dur
 					return nil, nil, errors.New("bad variant for tag 777")
 				}
 
-				fmt.Printf("Tag 777 (ttl): %d\n", t)
+				fmt.Printf("TTL: %d\n", t)
 
 				unknown = unknown[n:]
 			}
