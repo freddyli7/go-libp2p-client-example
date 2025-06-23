@@ -3,6 +3,7 @@ module go-libp2p-client-example
 go 1.24.0
 
 require (
+	github.com/ipfs/boxo v0.30.0
 	github.com/libp2p/go-libp2p v0.41.1
 	github.com/libp2p/go-libp2p-kad-dht v0.33.1
 	github.com/libp2p/go-libp2p-record v0.3.1
@@ -33,7 +34,6 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
-	github.com/ipfs/boxo v0.30.0 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-datastore v0.8.2 // indirect
 	github.com/ipfs/go-log/v2 v2.6.0 // indirect
@@ -126,4 +126,5 @@ require (
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
 
-replace github.com/libp2p/go-libp2p-kad-dht => github.com/ChainSafe/go-libp2p-kad-dht v0.0.0-20250611150359-898c06b5b33c
+//replace github.com/libp2p/go-libp2p-kad-dht => github.com/ChainSafe/go-libp2p-kad-dht v0.0.0-20250617160327-60986bcf2e8b
+replace github.com/libp2p/go-libp2p-kad-dht => ../../ChainSafe/chainsafe_forks/go-libp2p-kad-dht

@@ -5,15 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ipfs/boxo/ipns"
+	"github.com/libp2p/go-libp2p"
+	"github.com/multiformats/go-multiaddr"
 	"time"
 
-	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	record "github.com/libp2p/go-libp2p-record"
-	recordpb "github.com/libp2p/go-libp2p-record/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/multiformats/go-multiaddr"
-	"google.golang.org/protobuf/proto"
 )
 
 // AcceptAllValidator is a permissive validator that accepts any value.
@@ -61,8 +59,8 @@ func main() {
 		panic(err)
 	}
 
-	// Connect to Rust peer (update PORT and ID accordingly)
-	rustAddrStr := "/ip4/127.0.0.1/tcp/64286/p2p/12D3KooWGbjtRkkcxkoDD5rN5sk2icMtfcRKbPMjVwdFQMnuYNzP"
+	// Connect to Rust peer Alice
+	rustAddrStr := "/ip4/127.0.0.1/tcp/8080/p2p/12D3KooWP2F2DdjvoPbgC8VLU1PH9WB1NTnjAXFNiWhbpioWYSbR"
 	rustAddr, err := multiaddr.NewMultiaddr(rustAddrStr)
 	if err != nil {
 		panic(err)
@@ -102,7 +100,10 @@ func main() {
 
 	// store record by PutRecordAtPeer method(IpfsDHT.PutRecordAtPeer):: all works
 	//key := PutRecordAtPeerGoRecord(ctx, kademliaDHT, peerInfo)
-	key := PutRecordAtPeerProtobufRecord(ctx, kademliaDHT, peerInfo)
+	//key := PutRecordAtPeerProtobufRecord(ctx, kademliaDHT, peerInfo)
+
+	// get rust record by key: works, retrieved the raw bytes
+	key := "/record/my-key-rust"
 
 	// GET it back
 	fmt.Println("Getting record from DHT...")
@@ -112,12 +113,15 @@ func main() {
 	}
 	fmt.Println("Raw data retrieved:", val)
 
-	// Unmarshal Protobuf record
-	got := &recordpb.Record{}
-	if err := proto.Unmarshal(val, got); err != nil {
-		panic("Failed to unmarshal record: " + err.Error())
-	}
+	//// decode the raw bytes of the value field
+	//fmt.Println("Raw record value:", string(val))
 
-	fmt.Printf("Decoded Record:\n  key=%s\n  value=%s\n  timeReceived=%s\n",
-		string(got.Key), string(got.Value), got.TimeReceived)
+	// Unmarshal Protobuf record
+	//got := &recordpb.Record{}
+	//if err := proto.Unmarshal(val, got); err != nil {
+	//	panic("Failed to unmarshal record: " + err.Error())
+	//}
+	//
+	//fmt.Printf("Decoded Record:\n  key=%s\n  value=%s\n  timeReceived=%s\n",
+	//	string(got.Key), string(got.Value), got.TimeReceived)
 }

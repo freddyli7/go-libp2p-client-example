@@ -15,7 +15,7 @@ func StoreProtobufRecordLocally(ctx context.Context, kademliaDHT *dht.IpfsDHT) s
 
 	// Prepare Protobuf record
 	rec := &recordpb.Record{
-		Key:          []byte("/record/my-key-go"),
+		Key:          []byte(key),
 		Value:        []byte("hello from Go over protobuf"),
 		TimeReceived: time.Now().Format(time.RFC3339),
 	}
@@ -53,7 +53,7 @@ func PutValueProtobufRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT, peerI
 }
 
 func PutRecordAtPeerProtobufRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT, peerInfo *peer.AddrInfo) string {
-	key := "/record/" + peerInfo.ID
+	key := "/record/" + peerInfo.ID.String()
 	// Prepare Protobuf record
 	rec := &recordpb.Record{
 		Key:          []byte(key),
@@ -70,5 +70,5 @@ func PutRecordAtPeerProtobufRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT
 	}
 
 	fmt.Println("PutRecordAt Protobuf Record successfully!")
-	return ""
+	return key
 }

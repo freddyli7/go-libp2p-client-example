@@ -55,7 +55,8 @@ func PutValueGoRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT, peerID stri
 }
 
 func PutRecordAtPeerGoRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT, peerInfo *peer.AddrInfo) string {
-	key := "/record/" + peerInfo.ID
+	key := "/record/" + peerInfo.ID.String()
+	fmt.Println(key)
 	// Prepare go record
 	rec := &GoRecord{
 		Key:       []byte(key),
@@ -78,5 +79,5 @@ func PutRecordAtPeerGoRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT, peer
 
 	fmt.Println("PutRecordAt GoRecord successfully!")
 
-	return ""
+	return key
 }
