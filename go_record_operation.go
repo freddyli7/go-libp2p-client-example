@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-record/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"google.golang.org/protobuf/proto"
 	"time"
 )
 
@@ -83,10 +85,10 @@ func PutRecordAtPeerGoRecord(ctx context.Context, kademliaDHT *dht.IpfsDHT, peer
 	return key
 }
 
-func PutValueGoRecordWithPublisherExpires(ctx context.Context, kademliaDHT *dht.IpfsDHT, peerID string) string {
-	key := "/record/" + peerID
-	p := peer.ID(peerID)
+func PutRecordAtPeerGoRecordWithPublisherExpires(ctx context.Context, kademliaDHT *dht.IpfsDHT, peerInfo PeerInfo, peerAddr peer.AddrInfo) string {
+	key := "/record/" + peerInfo.ConnectingPeerID.String()
 	t := time.Now().Add(300 * time.Second)
+	p := peerInfo.Publisher
 
 	// Prepare go record
 	rec := &GoRecord{
@@ -96,18 +98,24 @@ func PutValueGoRecordWithPublisherExpires(ctx context.Context, kademliaDHT *dht.
 		Expires:   &t,
 	}
 
-	recordData, err := rec.appendPublisherAndExpiresToGetProtobufRecord()
+	recordData, err := rec.appendPublisherAndExpiresToGoProtobufRecord()
 	if err != nil {
 		panic("Failed to serialize GoRecord: " + err.Error())
 	}
 
-	fmt.Println(recordData)
+	// verify pb.Record by unmarshalling it
+	a := &pb.Record{}
+	err = proto.Unmarshal(recordData, a)
+	if err != nil {
+		panic("fucked here")
+	}
+	fmt.Printf("Unmarshal protobuf: %+v\n", a)
 
-	// Store it into the DHT using PutValue (key should be rec.Key)
-	if err := kademliaDHT.PutValue(ctx, key, recordData); err != nil {
-		panic("PutValue error: " + err.Error())
+	// Note: publisher can not be the connecting peer
+	if err = kademliaDHT.PutRecordAtPeer(ctx, a, []peer.AddrInfo{peerAddr}); err != nil {
+		panic("PutRecordAtPeer error: " + err.Error())
 	}
 
-	fmt.Println("PutValue GoRecord successfully!")
+	fmt.Println("PutRecordAtPeer GoRecord successfully!")
 	return key
 }

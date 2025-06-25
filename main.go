@@ -32,8 +32,42 @@ func (v AcceptAllValidator) Select(key string, vals [][]byte) (int, error) {
 	return 0, nil
 }
 
+type PeerInfo struct {
+	ConnectingEndpoint string
+	ConnectingPeerID   peer.ID
+	Publisher          peer.ID
+}
+
 func main() {
 	ctx := context.Background()
+
+	// prepare peer info
+	bobPeerIDBytes := []byte{0, 36, 8, 1, 18, 32, 144, 15, 46, 116, 214, 3, 224, 245, 171, 197, 194, 89, 140, 4, 67, 135, 70, 45, 123, 38, 175, 168, 83, 242, 57, 93, 216, 66, 15, 78, 104, 67}
+	alicePeerIDBytes := []byte{0, 36, 8, 1, 18, 32, 196, 50, 209, 144, 216, 163, 34, 240, 217, 233, 20, 206, 138, 167, 109, 93, 166, 219, 179, 77, 144, 221, 99, 41, 241, 53, 78, 243, 160, 76, 196, 120}
+	alicePeerID, err := peer.IDFromBytes(alicePeerIDBytes)
+	if err != nil {
+		panic(err)
+	}
+	bobPeerID, err := peer.IDFromBytes(bobPeerIDBytes)
+	if err != nil {
+		panic(err)
+	}
+	connectingPeers := map[string]PeerInfo{
+		"connecting_to_alice": {
+			ConnectingEndpoint: "/ip4/127.0.0.1/tcp/8080/p2p/12D3KooWP2F2DdjvoPbgC8VLU1PH9WB1NTnjAXFNiWhbpioWYSbR",
+			ConnectingPeerID:   alicePeerID,
+			Publisher:          bobPeerID,
+		},
+		"connecting_to_bob": {
+			ConnectingEndpoint: "/ip4/127.0.0.1/tcp/8081/p2p/12D3KooWKWiJaRrKxxq6PwxdWFbg2uou5ejM6NGAgzotgsDWvvn6",
+			ConnectingPeerID:   bobPeerID,
+			Publisher:          alicePeerID,
+		},
+	}
+
+	// choose the connecting peer
+	// Note: change the query key in the rust example code
+	whoToConnect := "connecting_to_alice"
 
 	// Create a libp2p host
 	h, err := libp2p.New()
@@ -61,9 +95,8 @@ func main() {
 		panic(err)
 	}
 
-	// Connect to Rust peer Alice
-	rustAddrStr := "/ip4/127.0.0.1/tcp/8080/p2p/12D3KooWP2F2DdjvoPbgC8VLU1PH9WB1NTnjAXFNiWhbpioWYSbR"
-	rustAddr, err := multiaddr.NewMultiaddr(rustAddrStr)
+	// Connect to Rust peer
+	rustAddr, err := multiaddr.NewMultiaddr(connectingPeers[whoToConnect].ConnectingEndpoint)
 	if err != nil {
 		panic(err)
 	}
@@ -92,6 +125,7 @@ func main() {
 	time.Sleep(3 * time.Second)
 	fmt.Println("Wait for routing table to populate...")
 
+	// ---------------------- Test cases ------------------ //
 	// store record locally(IpfsDHT.StoreRecord): all works
 	//key := StoreGoRecordLocally(ctx, kademliaDHT)
 	//key := StoreProtobufRecordLocally(ctx, kademliaDHT)
@@ -99,11 +133,12 @@ func main() {
 	// store record by put_value method(IpfsDHT.PutValue): all works
 	//key := PutValueGoRecord(ctx, kademliaDHT, peerInfo.ID.String())
 	//key := PutValueProtobufRecord(ctx, kademliaDHT, peerInfo.ID.String())
-	key := PutValueGoRecordWithPublisherExpires(ctx, kademliaDHT, peerInfo.ID.String())
 
 	// store record by PutRecordAtPeer method(IpfsDHT.PutRecordAtPeer):: all works
 	//key := PutRecordAtPeerGoRecord(ctx, kademliaDHT, peerInfo)
 	//key := PutRecordAtPeerProtobufRecord(ctx, kademliaDHT, peerInfo)
+	// add publisher and expires fields are properly parsed from rust side
+	key := PutRecordAtPeerGoRecordWithPublisherExpires(ctx, kademliaDHT, connectingPeers[whoToConnect], *peerInfo)
 
 	// get rust record by key and retrieved the raw bytes: works
 	//key := "/record/my-key-rust"
@@ -116,8 +151,9 @@ func main() {
 	//if err != nil {
 	//	panic("GetValue error: " + err.Error())
 	//}
+	//fmt.Println("Raw value retrieved:", val)
 
-	// Get the entire record
+	// Get the entire record and parse publisher and expires fields
 	rec, err := kademliaDHT.GetRecord(ctx, key)
 	if err != nil {
 		panic("GetRecord error: " + err.Error())
@@ -135,11 +171,10 @@ func main() {
 		exp = exp.Add(*ttl * time.Second)
 	}
 
-	fmt.Printf("Go record: %v\n", string(rec.Key))
-	fmt.Printf("Go record: %v\n", string(rec.Value))
-	fmt.Printf("Go record: %v\n", pub)
-	fmt.Printf("Go record: %v\n", exp)
-
+	fmt.Printf("Go record key: %v\n", string(rec.Key))
+	fmt.Printf("Go record value: %v\n", string(rec.Value))
+	fmt.Printf("Go record publisher: %v\n", pub)
+	fmt.Printf("Go record expires: %v\n", exp)
 }
 
 // parse 666 to publisher and 777 to ttl
