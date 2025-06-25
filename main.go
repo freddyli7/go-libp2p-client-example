@@ -99,13 +99,14 @@ func main() {
 	// store record by put_value method(IpfsDHT.PutValue): all works
 	//key := PutValueGoRecord(ctx, kademliaDHT, peerInfo.ID.String())
 	//key := PutValueProtobufRecord(ctx, kademliaDHT, peerInfo.ID.String())
+	key := PutValueGoRecordWithPublisherExpires(ctx, kademliaDHT, peerInfo.ID.String())
 
 	// store record by PutRecordAtPeer method(IpfsDHT.PutRecordAtPeer):: all works
 	//key := PutRecordAtPeerGoRecord(ctx, kademliaDHT, peerInfo)
 	//key := PutRecordAtPeerProtobufRecord(ctx, kademliaDHT, peerInfo)
 
-	// get rust record by key: works, retrieved the raw bytes
-	key := "/record/my-key-rust"
+	// get rust record by key and retrieved the raw bytes: works
+	//key := "/record/my-key-rust"
 
 	// GET it back
 	fmt.Println("Getting record from DHT...")
