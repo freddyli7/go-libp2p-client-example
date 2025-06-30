@@ -7,6 +7,7 @@ import (
 	"github.com/ipfs/boxo/ipns"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-record/pb"
+	"github.com/libp2p/go-libp2p/core/event"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/encoding/protowire"
 	"time"
@@ -36,6 +37,7 @@ type PeerInfo struct {
 	ConnectingEndpoint string
 	ConnectingPeerID   peer.ID
 	Publisher          peer.ID
+	PublisherBytes     []byte
 }
 
 func main() {
@@ -57,11 +59,13 @@ func main() {
 			ConnectingEndpoint: "/ip4/127.0.0.1/tcp/8080/p2p/12D3KooWP2F2DdjvoPbgC8VLU1PH9WB1NTnjAXFNiWhbpioWYSbR",
 			ConnectingPeerID:   alicePeerID,
 			Publisher:          bobPeerID,
+			PublisherBytes:     bobPeerIDBytes,
 		},
 		"connecting_to_bob": {
 			ConnectingEndpoint: "/ip4/127.0.0.1/tcp/8081/p2p/12D3KooWKWiJaRrKxxq6PwxdWFbg2uou5ejM6NGAgzotgsDWvvn6",
 			ConnectingPeerID:   bobPeerID,
 			Publisher:          alicePeerID,
+			PublisherBytes:     alicePeerIDBytes,
 		},
 	}
 
@@ -84,6 +88,34 @@ func main() {
 		// customized namespace
 		"record": AcceptAllValidator{},
 	}
+
+	eventBus := h.EventBus()
+
+	// Subscribe events using go-libp2p repo event
+	peerConnSub, err := eventBus.Subscribe(new(event.EvtPeerConnectednessChanged))
+	if err != nil {
+		panic(err)
+	}
+	defer peerConnSub.Close()
+	recordStoredSub, err := eventBus.Subscribe(new(EvtRecordPut))
+	if err != nil {
+		panic(err)
+	}
+	defer recordStoredSub.Close()
+
+	// print subscribed event info
+	go func() {
+		for e := range peerConnSub.Out() {
+			evt := e.(event.EvtPeerConnectednessChanged)
+			fmt.Printf("[Peer Event] %s is now %s\n", evt.Peer, evt.Connectedness)
+		}
+	}()
+	go func() {
+		for e := range recordStoredSub.Out() {
+			evt := e.(EvtRecordPut)
+			fmt.Printf("[Record Event] %s Record stored %s at %s\n", evt.Timestamp, evt.Key, evt.Target)
+		}
+	}()
 
 	// Here we don't initialize the dual.DHT, instead we initialize a IpfsDHT
 	// because dual.DHT is just a tuple with two IpfsDHT named LAN and WAN.
@@ -137,8 +169,12 @@ func main() {
 	// store record by PutRecordAtPeer method(IpfsDHT.PutRecordAtPeer):: all works
 	//key := PutRecordAtPeerGoRecord(ctx, kademliaDHT, peerInfo)
 	//key := PutRecordAtPeerProtobufRecord(ctx, kademliaDHT, peerInfo)
-	// add publisher and expires fields are properly parsed from rust side
-	key := PutRecordAtPeerGoRecordWithPublisherExpires(ctx, kademliaDHT, connectingPeers[whoToConnect], *peerInfo)
+
+	// adding publisher and expires fields that can be properly parsed from rust side
+	// manually add extra fields without modifying the protobuf message
+	//key := PutRecordAtPeerGoRecordWithPublisherExpiresManuallyConstruct(ctx, kademliaDHT, eventBus, connectingPeers[whoToConnect], *peerInfo)
+	// updating the protobuf message with desired fields
+	key := PutRecordAtPeerGoRecordWithPublisherExpiresUpdateProtoMessage(ctx, kademliaDHT, eventBus, connectingPeers[whoToConnect], *peerInfo)
 
 	// get rust record by key and retrieved the raw bytes: works
 	//key := "/record/my-key-rust"
@@ -160,16 +196,24 @@ func main() {
 	}
 	fmt.Println("Raw data retrieved:", rec)
 
-	// parse 666 to publisher and 777 to ttl
-	pub, ttl, err := parsePublisherAndExpiresFromRustRecord(rec)
+	// manually parse 666 to publisher and 777 to ttl
+	//pub, ttl, err := parsePublisherAndExpiresFromRustRecord(rec)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//exp := time.Now()
+	//if ttl != nil {
+	//	exp = exp.Add(*ttl * time.Second)
+	//}
+
+	// update Record protobuf message
+	// publisher and expires are available fields in the Record type
+	pub, err := peer.IDFromBytes(rec.Publisher)
 	if err != nil {
 		panic(err)
 	}
-
-	exp := time.Now()
-	if ttl != nil {
-		exp = exp.Add(*ttl * time.Second)
-	}
+	exp := rec.Ttl
 
 	fmt.Printf("Go record key: %v\n", string(rec.Key))
 	fmt.Printf("Go record value: %v\n", string(rec.Value))
@@ -177,7 +221,20 @@ func main() {
 	fmt.Printf("Go record expires: %v\n", exp)
 }
 
-// parse 666 to publisher and 777 to ttl
+// manually parse 666 to publisher and 777 to ttl when publisher and expires are in the unknown fields of Record type
+// like this :
+//
+//	type Record struct {
+//		state protoimpl.MessageState `protogen:"open.v1"`
+//		// The key that references this record
+//		Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+//		// The actual value this record is storing
+//		Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+//		// Time the record was received, set by receiver
+//		TimeReceived  string `protobuf:"bytes,5,opt,name=timeReceived,proto3" json:"timeReceived,omitempty"`
+//		unknownFields protoimpl.UnknownFields
+//		sizeCache     protoimpl.SizeCache
+//	}
 func parsePublisherAndExpiresFromRustRecord(rec *pb.Record) (*peer.ID, *time.Duration, error) {
 	msgReflect := rec.ProtoReflect()
 	unknown := msgReflect.GetUnknown()
