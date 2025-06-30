@@ -126,7 +126,6 @@ require (
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
 
-//replace github.com/libp2p/go-libp2p-kad-dht => github.com/ChainSafe/go-libp2p-kad-dht v0.0.0-20250617160327-60986bcf2e8b
-replace github.com/libp2p/go-libp2p-kad-dht => ../../ChainSafe/chainsafe_forks/go-libp2p-kad-dht
+replace github.com/libp2p/go-libp2p-kad-dht => github.com/ChainSafe/go-libp2p-kad-dht v0.0.0-20250630182457-50908e9748c3
 
 replace github.com/libp2p/go-libp2p-record => github.com/ChainSafe/go-libp2p-record v0.0.0-20250630175009-fe254df36b1c

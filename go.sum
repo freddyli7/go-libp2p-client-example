@@ -8,6 +8,8 @@ dmitri.shuralyov.com/service/change v0.0.0-20181023043359-a85b471d5412/go.mod h1
 dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D6DFvNNtx+9ybjezNCa8XF0xaYcETyp6rHWU=
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/ChainSafe/go-libp2p-kad-dht v0.0.0-20250630182457-50908e9748c3 h1:rfOnrGhdnAXAt7Gl3v06mLZ8znpW88nBrH12d/mhnFs=
+github.com/ChainSafe/go-libp2p-kad-dht v0.0.0-20250630182457-50908e9748c3/go.mod h1:5lZ7atpE8prwqEn7TADd7QYJpo1TCGdsjAO3agsyjzs=
 github.com/ChainSafe/go-libp2p-record v0.0.0-20250630175009-fe254df36b1c h1:lRQCI2C630ixq6yO+DXH6/MH4qthrNfDr+xYo5pXpGE=
 github.com/ChainSafe/go-libp2p-record v0.0.0-20250630175009-fe254df36b1c/go.mod h1:7V1nYI9kou/eS02DjvEhaNhTXZuArstoyhrmnVYQ5SA=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
