@@ -97,11 +97,11 @@ func main() {
 		panic(err)
 	}
 	defer peerConnSub.Close()
-	recordStoredSub, err := eventBus.Subscribe(new(EvtRecordPut))
-	if err != nil {
-		panic(err)
-	}
-	defer recordStoredSub.Close()
+	//recordStoredSub, err := eventBus.Subscribe(new(EvtRecordPut))
+	//if err != nil {
+	//	panic(err)
+	//}
+	//defer recordStoredSub.Close()
 
 	// print subscribed event info
 	go func() {
@@ -110,12 +110,12 @@ func main() {
 			fmt.Printf("[Peer Event] %s is now %s\n", evt.Peer, evt.Connectedness)
 		}
 	}()
-	go func() {
-		for e := range recordStoredSub.Out() {
-			evt := e.(EvtRecordPut)
-			fmt.Printf("[Record Event] %s Record stored %s at %s\n", evt.Timestamp, evt.Key, evt.Target)
-		}
-	}()
+	//go func() {
+	//	for e := range recordStoredSub.Out() {
+	//		evt := e.(EvtRecordPut)
+	//		fmt.Printf("[Record Event] %s Record stored %s at %s\n", evt.Timestamp, evt.Key, evt.Target)
+	//	}
+	//}()
 
 	// Here we don't initialize the dual.DHT, instead we initialize a IpfsDHT
 	// because dual.DHT is just a tuple with two IpfsDHT named LAN and WAN.

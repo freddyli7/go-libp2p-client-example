@@ -164,20 +164,20 @@ func PutRecordAtPeerGoRecordWithPublisherExpiresUpdateProtoMessage(ctx context.C
 		panic("PutRecordAtPeer error: " + err.Error())
 	}
 
-	// emit the event
-	emitter, err := eventBus.Emitter(new(EvtRecordPut))
-	if err != nil {
-		panic("Emitter creation error: " + err.Error())
-	}
-	err = emitter.Emit(EvtRecordPut{
-		Key:       key,
-		Target:    []peer.ID{peerAddr.ID},
-		Timestamp: time.Now(),
-	})
-	if err != nil {
-		panic("Emit event error: " + err.Error())
-	}
-	defer emitter.Close()
+	//// emit the event
+	//emitter, err := eventBus.Emitter(new(EvtRecordPut))
+	//if err != nil {
+	//	panic("Emitter creation error: " + err.Error())
+	//}
+	//err = emitter.Emit(EvtRecordPut{
+	//	Key:       key,
+	//	Target:    []peer.ID{peerAddr.ID},
+	//	Timestamp: time.Now(),
+	//})
+	//if err != nil {
+	//	panic("Emit event error: " + err.Error())
+	//}
+	//defer emitter.Close()
 
 	fmt.Println("PutRecordAtPeer GoRecord successfully!")
 	return key
